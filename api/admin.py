@@ -7,6 +7,7 @@ class OrganisationAdmin(admin.ModelAdmin):
     list_display = (
         'id',
         'title',
+        'owner',
     )
 
 
@@ -14,6 +15,11 @@ class EmployeeAdmin(admin.ModelAdmin):
     list_display = (
         'id',
         'first_name',
+        'last_name',
+        'creator',
+        'private_phone',
+        'work_phone',
+        'organisation'
     )
 
 
