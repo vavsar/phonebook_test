@@ -11,7 +11,7 @@ git clone https://github.com/vavsar/phonebook_test.git && cd phonebook_test/
 
 ### Подготовка развертывания приложения
 
-Для работы с проектом на удаленном сервере должен быть установлен Docker и docker-compose.  
+Для работы с проектом в контейнерах должен быть установлен Docker и docker-compose.  
 Для установки запустите скрипт docker-setup.
 ```
 ./docker-setup
