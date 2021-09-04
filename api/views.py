@@ -4,7 +4,7 @@ from rest_framework.generics import get_object_or_404
 from rest_framework.response import Response
 from rest_framework.viewsets import GenericViewSet
 
-from .models import Organisation, Employee
+from .models import Organisation, Employee, UserEditor
 from .serializers import (OrganisationSerializer, FirmEmployeeSerializer,
                           OwnEmployeeSerializer, )
 
@@ -24,30 +24,21 @@ class OrganisationModelViewSet(viewsets.ModelViewSet):
     ordering = ('title',)
 
     def get_queryset(self):
-        queryset = Organisation.objects.all()
-        # queryset = Organisation.objects.filter(owner=self.request.user)
+        queryset = Organisation.objects.filter(owner=self.request.user)
         return queryset
 
-    def perform_create(self, serializer):
-        serializer.save(owner=self.request.user)
-
-    def update(self, request, *args, **kwargs):
-        partial = kwargs.pop('partial', False)
-        instance = self.get_object()
-        if instance.owner == request.user:
-            serializer = self.get_serializer(instance, data=request.data,
-                                             partial=partial)
-            serializer.is_valid(raise_exception=True)
-            self.perform_update(serializer)
-
-            if getattr(instance, '_prefetched_objects_cache', None):
-                instance._prefetched_objects_cache = {}
-
-            return Response(serializer.data)
-        return Response(
-            {'You can update only own organisations'},
-            status=status.HTTP_403_FORBIDDEN
-        )
+    def perform_update(self, serializer):
+        organisation = self.get_object()
+        user = self.request.user
+        if UserEditor.objects.filter(
+                user=user,
+                organisation=organisation
+        ).exists():
+            serializer.save()
+        else:
+            raise PermissionError(
+                'You are not allowed to update this organisation'
+            )
 
     def destroy(self, request, *args, **kwargs):
         instance = self.get_object()
@@ -62,7 +53,7 @@ class OrganisationModelViewSet(viewsets.ModelViewSet):
 
 class FirmEmployeeModelViewSet(viewsets.ModelViewSet):
     serializer_class = FirmEmployeeSerializer
-    filter_backends = (filters.SearchFilter, )
+    filter_backends = (filters.SearchFilter,)
     search_fields = (
         'first_name',
         'last_name',
@@ -71,14 +62,17 @@ class FirmEmployeeModelViewSet(viewsets.ModelViewSet):
     )
 
     def get_queryset(self):
-        organisation = get_object_or_404(Organisation,
-                                         pk=self.kwargs.get('organisation_id'))
-        # return organisation.employees.filter(creator=self.request.user)
-        return organisation.employees.all()
+        organisation = get_object_or_404(
+            Organisation,
+            pk=self.kwargs.get('organisation_id')
+        )
+        return organisation.employees.filter(creator=self.request.user)
 
     def perform_create(self, serializer):
-        organisation = get_object_or_404(Organisation,
-                                         pk=self.kwargs.get('organisation_id'))
+        organisation = get_object_or_404(
+            Organisation,
+            pk=self.kwargs.get('organisation_id')
+        )
         serializer.save(organisation=organisation, creator=self.request.user)
 
     def update(self, request, *args, **kwargs):
@@ -113,7 +107,7 @@ class FirmEmployeeModelViewSet(viewsets.ModelViewSet):
 class OwnEmployeeModelViewSet(mixins.ListModelMixin,
                               GenericViewSet):
     serializer_class = OwnEmployeeSerializer
-    filter_backends = (filters.SearchFilter, )
+    filter_backends = (filters.SearchFilter,)
     search_fields = (
         'first_name',
         'last_name',
@@ -123,3 +117,11 @@ class OwnEmployeeModelViewSet(mixins.ListModelMixin,
 
     def get_queryset(self):
         return Employee.objects.filter(creator=self.request.user)
+
+
+class AllOrganisationsModelViewSet(mixins.ListModelMixin,
+                                   GenericViewSet):
+    serializer_class = OrganisationSerializer
+    queryset = Organisation.objects.all()
+    filter_backends = (filters.OrderingFilter,)
+    ordering = ('title',)

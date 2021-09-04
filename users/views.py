@@ -5,7 +5,8 @@ from rest_framework.generics import get_object_or_404
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
-from .serializers import UserSerializer
+from api.models import UserEditor
+from .serializers import (UserSerializer, UserEditorSerializer, )
 
 User = get_user_model()
 
@@ -33,8 +34,20 @@ class UserModelViewSet(viewsets.ModelViewSet):
         if instance.id == current_user.id:
             self.perform_destroy(instance)
             return Response(status=status.HTTP_204_NO_CONTENT)
-        else:
-            return Response(
-                {'Not allowed to delete other users'},
-                status=status.HTTP_403_FORBIDDEN
-            )
+        return Response(
+            {'Not allowed to delete other users'},
+            status=status.HTTP_403_FORBIDDEN
+        )
+
+
+class UserEditorModelViewSet(viewsets.ModelViewSet):
+    queryset = UserEditor.objects.all()
+    serializer_class = UserEditorSerializer
+
+    def perform_destroy(self, instance):
+        if self.request.user == instance.user:
+            instance.delete()
+        return Response(
+            {'Not allowed to delete other editor rights'},
+            status=status.HTTP_403_FORBIDDEN
+        )

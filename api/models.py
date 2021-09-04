@@ -43,10 +43,14 @@ class Employee(models.Model):
         return f'{self.first_name} {self.last_name}'
 
 
+class UserEditor(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    organisation = models.ForeignKey(Organisation, on_delete=models.CASCADE)
+
     class Meta:
         constraints = [
             models.UniqueConstraint(
-                fields=['id', 'organisation'],
-                name='unique_organisations_employee'
+                fields=['user', 'organisation'],
+                name='unique_user_organisation'
             )
         ]

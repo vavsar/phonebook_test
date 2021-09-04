@@ -3,9 +3,12 @@ from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 
 from .views import (OrganisationModelViewSet, FirmEmployeeModelViewSet,
-                    OwnEmployeeModelViewSet)
+                    OwnEmployeeModelViewSet, AllOrganisationsModelViewSet)
 
 router_v1 = DefaultRouter()
+router_v1.register('all',
+                   AllOrganisationsModelViewSet,
+                   basename='all_organisations')
 router_v1.register('organisations',
                    OrganisationModelViewSet,
                    basename='organisations')

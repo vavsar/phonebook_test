@@ -1,7 +1,7 @@
 from django.contrib.auth import get_user_model
 from rest_framework import serializers
 
-from .models import Organisation, Employee
+from .models import Organisation, Employee, UserEditor
 
 User = get_user_model()
 
@@ -20,6 +20,15 @@ class OrganisationSerializer(serializers.ModelSerializer):
         output_data['employee'] = list_employees
         return output_data
 
+    def create(self, validated_data):
+        request = self.context['request']
+        instance = Organisation.objects.create(**validated_data)
+        UserEditor.objects.create(
+            user=request.user,
+            organisation=instance
+        )
+        return instance
+
 
 class FirmEmployeeSerializer(serializers.ModelSerializer):
     creator = serializers.StringRelatedField(read_only=True)
@@ -37,7 +46,6 @@ class FirmEmployeeSerializer(serializers.ModelSerializer):
 
 
 class OwnEmployeeSerializer(serializers.ModelSerializer):
-
     class Meta:
         model = Employee
         fields = '__all__'
