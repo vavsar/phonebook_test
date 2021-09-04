@@ -1,11 +1,12 @@
 from django.contrib.auth import get_user_model
-from rest_framework import viewsets, status, filters
+from rest_framework import viewsets, status, filters, mixins
 from rest_framework.generics import get_object_or_404
 from rest_framework.response import Response
+from rest_framework.viewsets import GenericViewSet
 
 from .models import Organisation, Employee
 from .serializers import (OrganisationSerializer, FirmEmployeeSerializer,
-                          OwnEmployeeSerializer)
+                          OwnEmployeeSerializer, )
 
 User = get_user_model()
 
@@ -13,7 +14,13 @@ User = get_user_model()
 class OrganisationModelViewSet(viewsets.ModelViewSet):
     serializer_class = OrganisationSerializer
     filter_backends = (filters.SearchFilter, filters.OrderingFilter)
-    search_fields = ('title', )
+    search_fields = ('title',
+                     'employees__last_name',
+                     'employees__first_name',
+                     'employees__middle_name',
+                     'employees__private_phone',
+                     'employees__work_phone',
+                     )
     ordering = ('title',)
 
     def get_queryset(self):
@@ -55,16 +62,23 @@ class OrganisationModelViewSet(viewsets.ModelViewSet):
 
 class FirmEmployeeModelViewSet(viewsets.ModelViewSet):
     serializer_class = FirmEmployeeSerializer
-    filter_backends = (filters.SearchFilter, filters.OrderingFilter)
-    search_fields = ('first_name', 'last_name', 'private_phone')
+    filter_backends = (filters.SearchFilter, )
+    search_fields = (
+        'first_name',
+        'last_name',
+        'private_phone',
+        'work_phone'
+    )
 
     def get_queryset(self):
-        organisation = get_object_or_404(Organisation, pk=self.kwargs.get('organisation_id'))
+        organisation = get_object_or_404(Organisation,
+                                         pk=self.kwargs.get('organisation_id'))
         # return organisation.employees.filter(creator=self.request.user)
         return organisation.employees.all()
 
     def perform_create(self, serializer):
-        organisation = get_object_or_404(Organisation, pk=self.kwargs.get('organisation_id'))
+        organisation = get_object_or_404(Organisation,
+                                         pk=self.kwargs.get('organisation_id'))
         serializer.save(organisation=organisation, creator=self.request.user)
 
     def update(self, request, *args, **kwargs):
@@ -96,10 +110,16 @@ class FirmEmployeeModelViewSet(viewsets.ModelViewSet):
         )
 
 
-class OwnEmployeeModelViewSet(viewsets.ModelViewSet):
+class OwnEmployeeModelViewSet(mixins.ListModelMixin,
+                              GenericViewSet):
     serializer_class = OwnEmployeeSerializer
-    filter_backends = (filters.SearchFilter, filters.OrderingFilter)
-    search_fields = ('title',)
+    filter_backends = (filters.SearchFilter, )
+    search_fields = (
+        'first_name',
+        'last_name',
+        'private_phone',
+        'work_phone'
+    )
 
     def get_queryset(self):
         return Employee.objects.filter(creator=self.request.user)

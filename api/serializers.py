@@ -13,6 +13,13 @@ class OrganisationSerializer(serializers.ModelSerializer):
         model = Organisation
         fields = ('id', 'title', 'owner', 'address', 'description')
 
+    def to_representation(self, instance):
+        output_data = super().to_representation(instance)
+        employees = instance.employees.all()[:5]
+        list_employees = [FirmEmployeeSerializer(person).data for person in employees]
+        output_data['employee'] = list_employees
+        return output_data
+
 
 class FirmEmployeeSerializer(serializers.ModelSerializer):
     creator = serializers.StringRelatedField(read_only=True)
@@ -30,7 +37,6 @@ class FirmEmployeeSerializer(serializers.ModelSerializer):
 
 
 class OwnEmployeeSerializer(serializers.ModelSerializer):
-    # creator = serializers.StringRelatedField(read_only=True)
 
     class Meta:
         model = Employee
